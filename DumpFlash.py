@@ -6,7 +6,8 @@ from FlashUtil import *
 
 parser = OptionParser()
 
-parser.add_option("-i", action="store_true", dest="information", default=False)
+parser.add_option("-d", action="store", dest="serialdevice", default="/dev/ttyACM0", help="Serial interface")
+parser.add_option("-i", action="store_true", dest="information", default=False, help="Show chip information")
 
 parser.add_option("-r", action="store_true", dest="read", default=False, help="Read NAND Flash to a file")
 parser.add_option("-w", action="store_true", dest="write", default=False, help="Write file to a NAND Flash")
@@ -62,7 +63,7 @@ if options.pages!=None:
 	if len(options.pages)>1:
 		end_page=options.pages[1]
 
-flash_util=FlashUtil(options.filename,options.page_size, options.oob_size, options.pages_per_block,options.slow)
+flash_util=FlashUtil(options.filename,options.page_size, options.oob_size, options.pages_per_block,options.slow, options.serialdevice)
 
 if not flash_util.IsInitialized():
 	print 'Device not ready, aborting...'

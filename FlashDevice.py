@@ -137,10 +137,10 @@ class NandIO:
 	RemoveOOB=False
 	UseSequentialMode=False
 
-	def __init__(self, do_slow=False):
+	def __init__(self, device, do_slow=False):
 		self.Slow=do_slow
 		self.UseAnsi=False
-		self.ser = serial.Serial('/dev/hydrabus', 115200)
+		self.ser = serial.Serial(device, 115200)
                 self.EnterMode()
 
 		self.WaitReady()

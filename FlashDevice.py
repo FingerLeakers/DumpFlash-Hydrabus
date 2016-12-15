@@ -4,7 +4,8 @@ import time
 import sys
 import pprint
 import traceback
-from pyftdi.ftdi import *
+import serial
+import struct
 from DumpUBoot import *
 from ECC import *
 
@@ -139,27 +140,39 @@ class NandIO:
 	def __init__(self, do_slow=False):
 		self.Slow=do_slow
 		self.UseAnsi=False
-		self.Ftdi = Ftdi()
-		try:
-			self.Ftdi.open(0x0403,0x6010,interface=1)
-		except:
-			traceback.print_exc(file=sys.stdout)
-			return
+		self.ser = serial.Serial('/dev/hydrabus', 115200)
+                self.EnterMode()
 
-		self.Ftdi.set_bitmode(0, self.Ftdi.BITMODE_MCU)
-
-		if (self.Slow==True):
-			# Clock FTDI chip at 12MHz instead of 60MHz
-			self.Ftdi.write_data(Array('B', [Ftdi.ENABLE_CLK_DIV5]))
-		else:
-			self.Ftdi.write_data(Array('B', [Ftdi.DISABLE_CLK_DIV5]))
-
-		self.Ftdi.set_latency_timer(1)
-		self.Ftdi.purge_buffers()
-		self.Ftdi.write_data(Array('B', [Ftdi.SET_BITS_HIGH,0x0,0x1]))
 		self.WaitReady()
 		self.GetID()
 		
+        def EnterMode(self):
+                for i in xrange(20):
+                    self.ser.write("\x00")
+                if "BBIO1" not in self.ser.read(5):
+                    print "Could not get into bbIO mode"
+                    quit()
+
+                print "Into BBIO mode"
+
+                print "Switching to flash mode"
+                self.ser.write('\x0A')
+                if "FLA1" not in  self.ser.read(4):
+                    print "Cannot set flash mode"
+                    quit()
+
+                print "Setting chip enable"
+                self.ser.write("\x02")
+                if self.ser.read(1) != '\x01':
+                    print "Error setting chip en low"
+                    quit()
+
+        def ExitMode(self):
+                self.ser.write("\x00")
+                self.ser.write("\x0f\n")
+                self.ser.close()
+                quit()
+
 	def IsInitialized(self):
 		return self.Identified
 
@@ -167,57 +180,17 @@ class NandIO:
 		self.UseAnsi=use_ansi
 
 	def WaitReady(self):
-		while 1:
-			self.Ftdi.write_data(Array('B', [Ftdi.GET_BITS_HIGH]))
-			data = self.Ftdi.read_data_bytes(1)
-			if data[0]&2==0x2:
-				return
-			else:
-				if self.Debug>0:
-					print 'Not Ready', data
-		return
-
-	def nandRead(self,cl,al,count):
-		cmds=[]
-		cmd_type=0
-		if cl==1:
-			cmd_type|=self.ADR_CL
-		if al==1:
-			cmd_type|=self.ADR_AL
-
-		cmds+=[Ftdi.READ_EXTENDED, cmd_type, 0]
-
-		for i in range(1,count,1):
-			cmds+=[Ftdi.READ_SHORT, 0]
-
-		cmds.append(Ftdi.SEND_IMMEDIATE)
-		self.Ftdi.write_data(Array('B', cmds))
-		if (self.getSlow()):
-			data = self.Ftdi.read_data_bytes(count*2)
-			data = data[0:-1:2]
-		else:
-			data = self.Ftdi.read_data_bytes(count)
-		return data.tolist()
-
-	def nandWrite(self,cl,al,data):
-		cmds=[]
-		cmd_type=0
-		if cl==1:
-			cmd_type|=self.ADR_CL
-		if al==1:
-			cmd_type|=self.ADR_AL
-		if not self.WriteProtect:
-			cmd_type|=self.ADR_WP
-
-		cmds+=[Ftdi.WRITE_EXTENDED, cmd_type, 0, ord(data[0])]
-		for i in range(1,len(data),1):
-			#if i == 256:
-			#	cmds+=[Ftdi.WRITE_SHORT, 0, ord(data[i])]
-			cmds+=[Ftdi.WRITE_SHORT, 0, ord(data[i])]
-		self.Ftdi.write_data(Array('B', cmds))
+            self.ser.write('\x08')
+            if self.ser.read(1) != '\x01':
+                print "Error waiting for busy signal"
+            return
 
 	def sendCmd(self,cmd):
-		self.nandWrite(1,0,chr(cmd))
+            self.ser.write("\x06"+ chr(cmd))
+            if self.ser.read(1) != '\x01':
+                print "Error setting command"
+                print "Was " + hex(cmd)
+                quit()
 
 	def sendAddr(self,addr,count):
 		data=''
@@ -225,8 +198,12 @@ class NandIO:
 		for i in range(0,count,1):
 			data += chr(addr & 0xff)
 			addr=addr>>8
-
-		self.nandWrite(0,1,data)
+                self.ser.write(chr(0x10+(count-1)))
+                self.ser.write(data)
+                if self.ser.read(1) != '\x01':
+                    print "Error setting address"
+                    print "Was " + data.encode('hex')
+                    quit()
 
 	def Status(self):
 		self.sendCmd(0x70)
@@ -234,10 +211,22 @@ class NandIO:
 		return status
 
 	def readFlashData(self,count):
-		return self.nandRead(0,0,count)
+		self.ser.write("\x04\x00\x00"+struct.pack('>h',count))
+                if self.ser.read(1) == '\x01':
+                    data = self.ser.read(count)
+                    return [ord(x) for x in data]
+                else:
+                    print "Error getting data"
+                    print "Should have read " + str(count) + " bytes"
+                    quit()
 
 	def writeData(self,data):
-		return self.nandWrite(0,0,data)
+		self.ser.write("\x04"+struct.pack('>h',len(data))+"\x00\x00")
+                self.ser.write(data)
+                if self.ser.read(1) != '\x01':
+                    print "Error sending data"
+                    quit()
+                return
 
 	def getSlow(self):
 		return self.Slow
@@ -517,8 +506,8 @@ class NandIO:
 
 			self.WaitReady()
 
-		self.Ftdi.write_data(Array('B', [Ftdi.SET_BITS_HIGH,0x1,0x1]))
-		self.Ftdi.write_data(Array('B', [Ftdi.SET_BITS_HIGH,0x0,0x1]))
+		#self.Ftdi.write_data(Array('B', [Ftdi.SET_BITS_HIGH,0x1,0x1]))
+		#self.Ftdi.write_data(Array('B', [Ftdi.SET_BITS_HIGH,0x0,0x1]))
 
 		data=''
 

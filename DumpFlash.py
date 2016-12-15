@@ -179,3 +179,5 @@ if options.find_jffs2:
 
 if options.dump_jffs2:
 	flash_util.DumpJFFS2(options.name_prefix)
+
+flash_util.ExitProperly()

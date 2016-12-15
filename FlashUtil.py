@@ -17,6 +17,9 @@ class FlashUtil:
 		else:
 			self.io = NandIO(slow)
 			
+        def ExitProperly(self):
+                return self.io.ExitMode()
+
 	def IsInitialized(self):
 		return self.io.IsInitialized()
 

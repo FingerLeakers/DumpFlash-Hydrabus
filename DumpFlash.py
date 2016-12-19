@@ -28,7 +28,6 @@ parser.add_option("-J", action="store_true", dest="dump_jffs2", default=False, h
 parser.add_option("-n", dest="name_prefix", default='', help="Set output file name prefix")
 
 parser.add_option("-s", action="store_true", dest="seq", default=False, help="Set sequential row read mode - some NAND models supports")
-parser.add_option("-S", action="store_true", dest="slow", default=False, help="Set clock FTDI chip at 12MHz instead of 60MHz")
 parser.add_option("-f", dest="filename", default='', help="Use file instead of device for operations")
 
 parser.add_option("-C", dest="compare_target_filename", default='', help="When writing a file compare with this file before writing and write only differences", metavar="COMPARE_TARGET_FILENAME")
@@ -63,7 +62,7 @@ if options.pages!=None:
 	if len(options.pages)>1:
 		end_page=options.pages[1]
 
-flash_util=FlashUtil(options.filename,options.page_size, options.oob_size, options.pages_per_block,options.slow, options.serialdevice)
+flash_util=FlashUtil(options.filename,options.page_size, options.oob_size, options.pages_per_block, options.serialdevice)
 
 if not flash_util.IsInitialized():
 	print 'Device not ready, aborting...'

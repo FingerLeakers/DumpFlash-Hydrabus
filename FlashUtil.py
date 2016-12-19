@@ -6,7 +6,7 @@ from ECC import *
 import os
 
 class FlashUtil:
-	def __init__(self, filename='', page_size=0x800, oob_size=0x40, page_per_block=0x40,slow=False, serial="/dev/ttyACM0"):
+	def __init__(self, filename='', page_size=0x800, oob_size=0x40, page_per_block=0x40,serial="/dev/ttyACM0"):
 		self.UseAnsi=False
 		self.UseSequentialMode=False
 		self.DumpProgress=True
@@ -15,7 +15,7 @@ class FlashUtil:
 		if filename:
 			self.io = FlashFile(filename, page_size, oob_size, page_per_block)
 		else:
-			self.io = NandIO(serial, slow)
+			self.io = NandIO(serial)
 			
         def ExitProperly(self):
                 return self.io.ExitMode()

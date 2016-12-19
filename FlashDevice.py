@@ -124,7 +124,6 @@ class NandIO:
 	]
 
 	Debug=0
-	Slow=False
 	PageSize=0
 	OOBSize=0
 	PageCount=0
@@ -137,8 +136,7 @@ class NandIO:
 	RemoveOOB=False
 	UseSequentialMode=False
 
-	def __init__(self, device, do_slow=False):
-		self.Slow=do_slow
+	def __init__(self, device):
 		self.UseAnsi=False
 		self.ser = serial.Serial(device, 115200)
                 self.EnterMode()
@@ -227,9 +225,6 @@ class NandIO:
                     print "Error sending data"
                     quit()
                 return
-
-	def getSlow(self):
-		return self.Slow
 
 	def GetID(self):
 		self.sendCmd(self.NAND_CMD_READID)

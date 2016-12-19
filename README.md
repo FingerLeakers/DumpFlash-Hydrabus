@@ -1,18 +1,11 @@
-# DumpFlash
+# DumpFlash-Hydrabus
 DumpFlash is a tool to retrieve and write Flash data to the physical NAND Flash memory or virtual image file. Various operations like ECC check and on-image pattern recognition, extraction and rewriting for u-Boot bootloader and JFFS2 file system are supported.
+This fork is made to be used with Hydrabus
 
 ## Prerequisites
 
-### PyUSB
-
-### libusb-1.0
-http://zadig.akeo.ie/
-
-### pyftdi
-Use one of the following options.
-* Install from source https://github.com/eblot/pyftdi
-* pip install pyftdi
-
+### pyserial
+https://pypi.python.org/pypi/pyserial
 
 ## Documentations
 For more details, please read following:

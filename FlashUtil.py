@@ -6,11 +6,12 @@ from ECC import *
 import os
 
 class FlashUtil:
-	def __init__(self, filename='', page_size=0x800, oob_size=0x40, page_per_block=0x40,serial="/dev/ttyACM0"):
+	def __init__(self, filename='', page_size=0x800, oob_size=0x40, page_per_block=0x40,serial="/dev/ttyACM0", use_sd=False):
 		self.UseAnsi=False
 		self.UseSequentialMode=False
 		self.DumpProgress=True
 		self.DumpProgressInterval=1
+                self.use_sd = use_sd
 
 		if filename:
 			self.io = FlashFile(filename, page_size, oob_size, page_per_block)
@@ -148,7 +149,10 @@ class FlashUtil:
 		if seq:
 			return self.ReadSeqPages(start_page, end_page, remove_oob, filename, append=append, maximum = maximum, raw_mode=raw_mode)
 
-		if filename:
+                if self.use_sd:
+                    if self.io.EnableSD() == False:
+                        return
+                elif filename:
 			if append:
 				fd=open(filename,'ab')
 			else:
@@ -177,7 +181,7 @@ class FlashUtil:
 			
 			print 'data: %x' % len(data)
 
-			if filename:
+			if not self.use_sd and filename:
 				if maximum!=0:
 					if length<maximum:
 						fd.write(data[0:maximum-length])
@@ -209,8 +213,9 @@ class FlashUtil:
 						bps=-1
 
 					sys.stdout.write(fmt_str % (progress, page, end_page, block, end_block, bps))
-		
-		if filename:
+                if self.use_sd:
+                    self.io.DisableSD()
+		elif filename:
 			fd.close()
 
 		if maximum!=0:

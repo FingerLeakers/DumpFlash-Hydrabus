@@ -19,6 +19,7 @@ parser.add_option("-c", action="store_true", dest="check_ecc", default=False, he
 parser.add_option("-O", action="store_true", dest="add_oob", default=False, help="Add OOB to the source")
 parser.add_option("--OJ", action="store_true", dest="add_jffs2_oob", default=False, help="Add JFFS2 OOB to the source")
 parser.add_option("-o", action="store_true", dest="remove_oob", default=False, help="Remove OOB from the source")
+parser.add_option("--sd", action="store_true", dest="use_sd", default=False, help="Write to Hydrabus SD card instead of host (cannot be used with -s)")
 
 parser.add_option("-u", action="store_true", dest="find_uboot_images", default=False, help="Find U-Boot images")
 parser.add_option("-U", action="store_true", dest="dump_uboot_images", default=False, help="Dump U-Boot images")
@@ -62,7 +63,7 @@ if options.pages!=None:
 	if len(options.pages)>1:
 		end_page=options.pages[1]
 
-flash_util=FlashUtil(options.filename,options.page_size, options.oob_size, options.pages_per_block, options.serialdevice)
+flash_util=FlashUtil(options.filename,options.page_size, options.oob_size, options.pages_per_block, options.serialdevice, options.use_sd)
 
 if not flash_util.IsInitialized():
 	print 'Device not ready, aborting...'

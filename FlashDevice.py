@@ -140,6 +140,7 @@ class NandIO:
 		self.UseAnsi=False
 		self.ser = serial.Serial(device, 115200)
                 self.EnterMode()
+                self.use_sd = False
 
 		self.WaitReady()
 		self.GetID()
@@ -166,9 +167,29 @@ class NandIO:
                     quit()
 
         def ExitMode(self):
+                if self.use_sd:
+                    self.DisableSD()
                 self.ser.write("\x00")
                 self.ser.write("\x0f\n")
                 self.ser.close()
+
+        def EnableSD(self):
+                if not self.use_sd:
+                    self.ser.write('\x0b')
+                    if self.ser.read(1) != '\x01':
+                        print "Error enabling SD card write"
+                        self.use_sd = False
+                        return False
+                    else:
+                        self.use_sd = True
+                        return True
+                else:
+                    return True
+
+        def DisableSD(self):
+                if self.use_sd:
+                    self.ser.write('\x0a')
+                    self.ser.read(1)
 
 	def IsInitialized(self):
 		return self.Identified
@@ -210,7 +231,10 @@ class NandIO:
 	def readFlashData(self,count):
 		self.ser.write("\x04\x00\x00"+struct.pack('>h',count))
                 if self.ser.read(1) == '\x01':
-                    data = self.ser.read(count)
+                    if not self.use_sd:
+                        data = self.ser.read(count)
+                    else:
+                        data = ['\x00']*count
                     return [ord(x) for x in data]
                 else:
                     print "Error getting data"
@@ -435,6 +459,8 @@ class NandIO:
 	def ReadPage(self,pageno,remove_oob=False):
 		bytes=[]
 
+                if self.use_sd:
+                    self.EnableSD()
 		if self.Options&self.LP_Options:
 			self.sendCmd(self.NAND_CMD_READ0)
 			self.sendAddr(pageno<<16,self.AddrCycles)

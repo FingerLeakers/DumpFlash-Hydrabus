@@ -169,7 +169,6 @@ class NandIO:
                 self.ser.write("\x00")
                 self.ser.write("\x0f\n")
                 self.ser.close()
-                quit()
 
 	def IsInitialized(self):
 		return self.Identified
